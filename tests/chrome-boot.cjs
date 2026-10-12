@@ -7,6 +7,7 @@ const path = require('node:path');
 const sleep = (ms) => new Promise(ok=>setTimeout(ok,ms));
 async function main() {
   const url=process.argv[2]||'http://127.0.0.1:8992/?noshaderwarm';
+  const bootsGame=url.includes('8992')||process.argv.includes('--remote');
   const list=await(await fetch('http://127.0.0.1:9333/json')).json();
   const tab=list.find(p=>p.type==='page'); assert(tab);
   const ws=new WebSocket(tab.webSocketDebuggerUrl);
@@ -30,12 +31,13 @@ async function main() {
         log:document.querySelector('#log')?.textContent.slice(-900)})`,returnByValue:true});
       status=out.result?.result?.value;
       if(i%3===0)console.log(`${(i+1)*1.5}s workers=${status?.workers} frames=${status?.frames} folder=${status?.needsFolder} ${status?.state}`);
-      if(url.includes('8992') && status?.workers>2 && status?.frames>(process.argv.includes('--long')?120:0)) break;
-      if(!url.includes('8992') && status?.needsFolder) break;
+      if(bootsGame && status?.workers>2 && status?.frames>(process.argv.includes('--long')?120:0)) break;
+      if(!bootsGame && status?.needsFolder) break;
     }
     console.log('Final:',status);
     assert(status?.isolated,'Cross origin isolation failed');
-    if(url.includes('8992')){
+    if(bootsGame){
+      assert(!status?.needsFolder,'The game incorrectly asked for local files while remote hosting is configured');
       assert(status?.workers>2,'Guest did not start threads');
       assert(status?.frames>0,'Guest did not render a frame');
       const capture=await cdp('Page.captureScreenshot',{format:'png'});

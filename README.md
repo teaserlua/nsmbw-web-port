@@ -14,8 +14,8 @@ The original extracted files and R2 packs are not committed to this Git repo.
 Open the Play link in a desktop version of **Chrome or Edge**. The game starts
 automatically and reads its disc files from Cloudflare R2. The browser may
 reload itself once to activate the isolation headers required for WebAssembly
-threads. On first launch, downloading and preparing the game may take a little
-time depending on network speed.
+threads. On first launch, downloading and preparing the game can take several
+dozen seconds depending on network speed.
 
 If you prefer your own extracted game partition, open
 [local folder mode](https://teaserlua.github.io/nsmbw-web-port/?local=1), then

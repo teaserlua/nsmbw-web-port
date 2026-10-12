@@ -75,6 +75,14 @@ verify the public deployment:
 3. Test a complete boot and controls from the published Pages URL with no local
    game folder. The optional folder picker continues to support a local copy.
 
+**Deployment checks (October 12, 2026):** the public Worker returned correct
+200 HEAD, 206 byte ranges and 416 invalid-range responses. Forty-two virtual
+files were sampled and matched local packed bytes. A Chrome boot using only
+GitHub Pages and remote R2 reached nine game threads and 193 rendered frames,
+displaying the Wii safety screen; no local game directory was selected. The
+initial boot reached that screen after roughly 45 seconds in the test. Full
+level gameplay and controller input have not yet been tested on this deployment.
+
 To make the files private again, set `PUBLIC_GAME_DATA` to `"false"` in
 `cloudflare/nsmbw-assets/wrangler.jsonc` and redeploy with Wrangler; also
 remove `web/game-config.json` from the published site.
