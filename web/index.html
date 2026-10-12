@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>New Super Mario Bros. Wii</title>
+<style>
+  /* Local disc selection is needed in browsers until licensed remote assets are configured. */
+  #menu { display: none !important; }
+  :root {
+    --wii: #34bee8; --wii-deep: #1592c4; --ink: #3a3f45; --ink-soft: #6b737c;
+    --glass: rgba(250, 252, 254, 0.9); --line: #c9d2da;
+    --round: "Nunito", "Segoe UI Rounded", "Arial Rounded MT Bold", "Varela Round", "Segoe UI", system-ui, sans-serif;
+  }
+  html, body { margin: 0; height: 100%; background: #000; color: #ddd; font: 14px/1.4 var(--round); overflow: hidden; }
+  button { font-family: inherit; }
+
+  /* ---------------------------------------------------------------- game screen (whole window) */
+  #screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #000; }
+  #view { width: min(100vw, calc(100vh * 16 / 9)); aspect-ratio: 16 / 9; background: #000; display: block; }
+  body.ar43 #view { width: min(100vw, calc(100vh * 4 / 3)); aspect-ratio: 4 / 3; }
+  body.playing #screen { cursor: none; }
+
+  /* in-game buttons: only while the mouse moves / the screen is touched */
+  #hud { position: fixed; top: 14px; right: 14px; display: flex; gap: 8px; z-index: 20; opacity: 0; transform: translateY(-8px);
+         transition: opacity .25s, transform .25s; pointer-events: none; }
+  body.show-hud #hud { opacity: 1; transform: none; pointer-events: auto; }
+  #fps { position: fixed; top: 10px; left: 12px; z-index: 19; font: 600 13px/1.2 ui-monospace, monospace; color: #fff;
+         text-shadow: 0 1px 3px #000, 0 0 2px #000; pointer-events: none; white-space: pre; }
+
+  .wbtn { background: linear-gradient(#ffffff, #e7edf2); color: var(--ink); border: 2px solid var(--line); border-radius: 999px;
+          padding: 7px 16px; font: 700 13px/1.2 var(--round); cursor: pointer;
+          box-shadow: inset 0 1px 0 #fff, 0 2px 6px rgba(0, 0, 0, .28); transition: border-color .15s, box-shadow .15s, transform .1s; }
+  .wbtn:hover, .wbtn:focus-visible { border-color: var(--wii); box-shadow: inset 0 1px 0 #fff, 0 0 0 3px rgba(52, 190, 232, .45), 0 2px 6px rgba(0, 0, 0, .28); outline: none; }
+  .wbtn:active { transform: scale(.96); }
+  .wbtn.blue { background: linear-gradient(#5fd3f5, var(--wii-deep)); color: #fff; border-color: #127fae; text-shadow: 0 1px 1px rgba(0, 0, 0, .3); }
+  #btn-ab { user-select: none; touch-action: none; }
+
+  /* information bar (status, counters, log): optional */
+  #bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 18; background: rgba(10, 14, 20, .82); backdrop-filter: blur(4px);
+         border-top: 1px solid rgba(255, 255, 255, .12); display: none; }
+  body.show-info #bar { display: block; }
+  #bar .line { padding: 6px 12px; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; font-size: 12px; }
+  #log { height: 96px; overflow: auto; margin: 0; padding: 4px 12px 8px; font: 11px/1.3 ui-monospace, monospace; white-space: pre-wrap; color: #b9c2cc; }
+  .muted { color: #8d97a1; }
+
+  /* toasts (controller / phone connected) */
+  #toasts { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); z-index: 40; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
+  .toast { background: var(--glass); color: var(--ink); border: 2px solid var(--wii); border-radius: 999px; padding: 8px 18px; font-weight: 700;
+           box-shadow: 0 6px 20px rgba(0, 0, 0, .35); display: flex; gap: 10px; align-items: center; animation: toast 3.2s ease forwards; }
+  .toast img { width: 22px; height: 22px; border-radius: 6px; }
+  @keyframes toast { 0% { opacity: 0; transform: translateY(12px); } 8%, 85% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(6px); } }
+
+  /* ---------------------------------------------------------------- title / loading screen */
+  #title { position: fixed; inset: 0; z-index: 30; background: #06102a url(assets/fondo.jpg) center / cover no-repeat; transition: opacity .7s ease; }
+  #game-source { display: none; position: absolute; z-index: 3; left: 50%; top: 48%; transform: translate(-50%, -50%);
+                 width: min(520px, calc(100vw - 44px)); box-sizing: border-box; padding: 28px;
+                 background: rgba(249,252,255,.96); color: #303e4a; border: 3px solid #fff; border-radius: 26px;
+                 box-shadow: 0 15px 55px rgba(0,0,0,.45); text-align: center; }
+  #game-source h2 { margin: 0 0 12px; font-size: clamp(18px,2.2vw,27px); }
+  #game-source p { font-size: 14px; line-height: 1.5; }
+  #game-source #game-status { font-size: 12px; display: block; margin: 12px 0; overflow-wrap: anywhere; }
+  #title.needs-game #game-source { display: block; }
+  #title.needs-game #loader { visibility: hidden; opacity: 0; }
+  #title.gone { opacity: 0; pointer-events: none; }
+  #title::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+                  background: linear-gradient(90deg, rgba(0, 20, 60, .45) 0%, rgba(0, 20, 60, .12) 38%, rgba(0, 0, 0, 0) 60%); }
+  #menu { position: absolute; z-index: 1; left: 5vw; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 1.2vh;
+          width: clamp(220px, 27vw, 430px); transition: opacity .35s, transform .35s; }
+  #menu .ibtn { display: block; width: 100%; padding: 0; margin: -2.4% 0; border: 0; background: none; cursor: pointer; transition: transform .14s ease, filter .14s ease; animation: rise .6s ease backwards; }
+  #menu .ibtn:nth-child(2) { animation-delay: .08s; } #menu .ibtn:nth-child(3) { animation-delay: .16s; }
+  #menu .ibtn img { display: block; width: 100%; pointer-events: none; -webkit-user-drag: none; }
+  #menu .ibtn:hover, #menu .ibtn:focus-visible { transform: scale(1.045); filter: drop-shadow(0 0 10px rgba(52, 190, 232, .95)) drop-shadow(0 0 3px rgba(52, 190, 232, .9)); outline: none; }
+  #menu .ibtn:active { transform: scale(.98); }
+  #menu .ibtn.play img { width: 100%; }
+  @keyframes rise { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: none; } }
+  #title.loading #menu { opacity: 0; transform: translate(-20px, -50%); pointer-events: none; }
+
+  #loader { position: absolute; z-index: 1; left: 5vw; top: 50%; transform: translateY(-50%); width: clamp(260px, 34vw, 560px);
+            opacity: 0; pointer-events: none; transition: opacity .4s .15s; text-align: center; }
+  #title.loading #loader { opacity: 1; pointer-events: auto; }
+  #barbox { position: relative; }
+  #barbox img { display: block; width: 100%; -webkit-user-drag: none; }
+  /* the empty slot inside assets/barra.png, in percent of the image */
+  #barslot { position: absolute; left: 8.9%; top: 40.7%; width: 82.1%; height: 18.9%; border-radius: 999px; overflow: hidden; }
+  #barfill { height: 100%; width: 0%; border-radius: 999px; transition: width .25s ease;
+             background: linear-gradient(#9fe6fb 0%, #4cc7ee 45%, #1aa3d6 55%, #43c3ec 100%);
+             box-shadow: inset 0 2px 2px rgba(255, 255, 255, .7), inset 0 -2px 3px rgba(0, 60, 110, .35); position: relative; }
+  #barfill::after { content: ""; position: absolute; inset: 0; border-radius: inherit;
+                    background: repeating-linear-gradient(115deg, rgba(255, 255, 255, .22) 0 14px, rgba(255, 255, 255, 0) 14px 28px);
+                    background-size: 200% 100%; animation: shine 1.2s linear infinite; }
+  @keyframes shine { to { background-position: -56px 0; } }
+  #loadtext { margin-top: -6%; color: #fff; font: 800 clamp(14px, 1.4vw, 20px)/1.3 var(--round); text-shadow: 0 2px 4px rgba(0, 0, 0, .6); }
+  #loadsub { color: #d5ecf7; font: 600 clamp(11px, .95vw, 14px)/1.3 var(--round); text-shadow: 0 1px 3px rgba(0, 0, 0, .7); min-height: 1.3em; }
+  #skip { margin-top: 10px; display: none; }
+
+  /* Wii-like bottom strip with the clock */
+  #wiibar { position: absolute; z-index: 1; left: 0; right: 0; bottom: 0; height: 9vh; min-height: 54px;
+            background: linear-gradient(#f4f7f9, #dde4ea); border-top: 3px solid #b9c6d0; border-radius: 50% 50% 0 0 / 28px 28px 0 0;
+            display: flex; align-items: center; justify-content: center; box-shadow: 0 -4px 16px rgba(0, 0, 0, .25); }
+  /* without the optional artwork in web/assets (see web/assets/README.md): plain Wii-style buttons and bar */
+  #menu .ibtn.noimg { margin: 0; width: clamp(220px, 24vw, 380px); padding: 2.2vh 0; border-radius: 999px; background: linear-gradient(#fff, #e3e9ee);
+                      border: 3px solid #b9c6d0; box-shadow: 0 4px 12px rgba(0, 0, 0, .25); }
+  #menu .ibtn.noimg::after { content: attr(aria-label); font: 800 clamp(18px, 2.6vw, 30px)/1 var(--round); color: #3a4650; }
+  #barbox.noimg { height: 46px; border-radius: 999px; background: linear-gradient(#fff, #e3e9ee); border: 3px solid #b9c6d0; box-shadow: 0 4px 12px rgba(0, 0, 0, .25); }
+  #barbox.noimg #barslot { left: 10px; right: 10px; width: auto; top: 10px; height: 20px; }
+  #title { background-color: #0b2a5c; background-image: url(assets/fondo.jpg), radial-gradient(circle at 70% 30%, #3fa7e0 0%, #0b2a5c 70%); }
+  #ported { position: absolute; z-index: 2; right: 18px; bottom: 8px; color: #8a96a1; font: 700 12px/1 var(--round); letter-spacing: .03em; opacity: .85; pointer-events: none; }
+  #clock { color: #8a96a1; font: 800 clamp(18px, 2.6vh, 30px)/1 var(--round); letter-spacing: .04em; text-align: center; }
+  #clock small { display: block; font: 700 clamp(10px, 1.4vh, 14px)/1.4 var(--round); color: #9aa5af; letter-spacing: 0; }
+
+  /* ---------------------------------------------------------------- overlays: settings, credits */
+  .overlay { position: fixed; inset: 0; z-index: 50; background: rgba(8, 22, 44, .42); backdrop-filter: blur(5px);
+             display: flex; align-items: center; justify-content: center; animation: fade .2s ease; }
+  .overlay[hidden] { display: none; }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+  .card { background: var(--glass); color: var(--ink); border: 3px solid #fff; border-radius: 30px;
+          box-shadow: 0 0 0 2px var(--line), 0 18px 60px rgba(0, 0, 0, .45); }
+
+  #controls .card { width: min(1040px, calc(100vw - 32px)); height: min(900px, calc(100vh - 32px)); display: flex; flex-direction: column; overflow: hidden; }
+  #controls header { display: flex; align-items: center; gap: 12px; padding: 16px 22px 10px; border-bottom: 2px solid #e1e7ec; }
+  #controls header h2 { margin: 0; font: 800 22px/1 var(--round); color: var(--wii-deep); flex: 1; }
+  .tabs { display: flex; gap: 6px; padding: 10px 22px 0; }
+  .tab { background: none; border: 2px solid transparent; border-bottom: 0; border-radius: 16px 16px 0 0; padding: 8px 16px; font: 800 14px/1 var(--round);
+         color: var(--ink-soft); cursor: pointer; display: flex; align-items: center; gap: 7px; }
+  .tab img { width: 20px; height: 20px; border-radius: 5px; }
+  .tab.on { color: var(--wii-deep); background: #fff; border-color: var(--line); }
+  .pane { flex: 1; overflow: auto; padding: 16px 22px 20px; background: #fff; border-top: 2px solid var(--line); margin-top: -2px; }
+  .pane[hidden] { display: none; }
+  .pane h3 { margin: 4px 0 8px; font: 800 16px/1.2 var(--round); color: var(--ink); }
+  .pane p, .pane .muted { color: var(--ink-soft); margin: 0 0 8px; }
+  #controls table { width: 100%; border-collapse: separate; border-spacing: 0 4px; }
+  #controls th { text-align: left; font: 800 12px/1 var(--round); color: var(--ink-soft); padding: 2px 6px; text-transform: uppercase; letter-spacing: .04em; }
+  #controls td { padding: 0 4px; }
+  #controls td:first-child { font-weight: 700; color: var(--ink); padding-left: 8px; }
+  #controls tbody tr { background: #f2f6f9; }
+  #controls tbody tr td:first-child { border-radius: 12px 0 0 12px; }
+  #controls tbody tr td:last-child { border-radius: 0 12px 12px 0; }
+  #controls button.bind { width: 100%; min-width: 86px; margin: 4px 0; background: #fff; color: var(--ink); border: 2px solid var(--line); border-radius: 10px;
+                          padding: 5px 6px; font: 700 12px/1.2 var(--round); cursor: pointer; }
+  #controls button.bind:hover { border-color: var(--wii); }
+  #controls button.bind.pad { background: #eef7fc; }
+  #controls button.wait { background: #fff4cf; border-color: #e3b21b; }
+  #controls .hint { color: #b07c00; font-weight: 700; min-height: 1.4em; }
+  #controls .row { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+  #controls input, #controls select { background: #fff; color: var(--ink); border: 2px solid var(--line); border-radius: 10px; padding: 6px 8px; font: 600 13px var(--round); }
+  #controls input:focus, #controls select:focus { border-color: var(--wii); outline: none; }
+  #controls input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--wii-deep); vertical-align: middle; }
+  #controls input[type=range] { accent-color: var(--wii-deep); padding: 0; border: 0; }
+  #controls footer { display: flex; gap: 10px; justify-content: flex-end; padding: 12px 22px 16px; background: #fff; border-top: 2px solid #e1e7ec; }
+  .dsuhead { display: flex; gap: 14px; align-items: center; margin-bottom: 8px; }
+  .dsuhead img { width: 56px; height: 56px; border-radius: 14px; box-shadow: 0 2px 8px rgba(0, 0, 0, .2); }
+  .pill { display: inline-block; padding: 4px 12px; border-radius: 999px; font-weight: 800; font-size: 12px; background: #eef2f5; color: var(--ink-soft); }
+  .pill.ok { background: #dff6e6; color: #1c7b3c; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px 18px; }
+  .help { background: #f2f6f9; border-radius: 14px; padding: 10px 14px; color: var(--ink-soft); font-size: 13px; }
+  .help b { color: var(--ink); }
+  .opt { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #f2f6f9; border-radius: 14px; margin-bottom: 8px; }
+  .opt .t { flex: 1; } .opt .t > b { display: block; color: var(--ink); } .opt .t span { color: var(--ink-soft); font-size: 12px; } .opt .t span b { color: var(--ink); }
+
+  #credits .card { width: min(560px, calc(100vw - 32px)); padding: 34px 30px 26px; text-align: center; }
+  #credits h1 { margin: 0; font: 900 clamp(28px, 4vw, 44px)/1.1 var(--round); color: var(--wii-deep); letter-spacing: .01em; }
+  #credits .by { margin: 14px 0 6px; font: 700 18px/1.3 var(--round); color: var(--ink); }
+  #credits .by b { color: var(--wii-deep); }
+  #credits .small { color: var(--ink-soft); font-size: 12px; margin: 16px 0 18px; }
+  /* loading screen: the New Super Mario Bros. Wii picture stays fully visible, the bar sits low in the middle */
+  #title.loading::after { background: linear-gradient(0deg, rgba(0, 0, 0, .45) 0%, rgba(0, 0, 0, 0) 32%); }
+  #title.loading #loader { left: 50%; top: auto; bottom: calc(9vh + 18px); transform: translateX(-50%); width: clamp(260px, 30vw, 480px); }
+</style>
+</head>
+<body>
+<div id="screen"><canvas id="view" width="1706" height="960"></canvas></div>
+<div id="fps" hidden></div>
+
+<div id="hud">
+  <button class="wbtn" id="hud-wiimenu" hidden onclick="location.href='../'">Wii Menu</button>
+  <button class="wbtn" id="hud-full">Full screen</button>
+  <button class="wbtn blue" id="settings">Settings</button>
+</div>
+
+<div id="bar">
+  <div class="line"><span id="status" class="muted">New Super Mario Bros. Wii (SMNE01) · game data is read from your own copy.</span><span id="stats" class="muted"></span></div>
+  <pre id="log"></pre>
+</div>
+<div id="toasts"></div>
+
+<!-- title / loading screen -->
+<div id="title">
+  <div id="game-source">
+    <h2>New Super Mario Bros. Wii</h2>
+    <p>Select the extracted game partition from your own disc. Choose the folder containing <b>sys</b> and <b>files</b>. Nothing is uploaded.</p>
+    <button class="wbtn blue" id="choose-game" type="button">Choose game folder</button>
+    <input id="game-folder" type="file" webkitdirectory directory multiple hidden>
+    <span id="game-status">Waiting for the game folder.</span>
+  </div>
+  <nav id="menu">
+    <button class="ibtn play" id="start" aria-label="Play"><img onerror="this.parentNode.classList.add('noimg');this.remove()" src="assets/btn-play.png" alt="Play"></button>
+    <button class="ibtn" id="t-settings" aria-label="Settings"><img onerror="this.parentNode.classList.add('noimg');this.remove()" src="assets/btn-settings.png" alt="Settings"></button>
+    <button class="ibtn" id="t-credits" aria-label="Credits"><img onerror="this.parentNode.classList.add('noimg');this.remove()" src="assets/btn-credits.png" alt="Credits"></button>
+  </nav>
+  <div id="loader">
+    <div id="barbox"><img onerror="this.parentNode.classList.add('noimg');this.remove()" src="assets/barra.png" alt=""><div id="barslot"><div id="barfill"></div></div></div>
+    <div id="loadtext">Loading…</div>
+    <div id="loadsub"></div>
+    <button class="wbtn" id="skip">Start now (don't wait)</button>
+  </div>
+  <div id="wiibar"><div id="clock"></div></div>
+  <div id="ported">ported by teaser.lua</div>
+</div>
+
+<!-- settings -->
+<div id="controls" class="overlay" hidden>
+  <div class="card">
+    <header><h2>Settings</h2><span class="pill" id="gp-pill">No controller</span><span class="pill" id="dsu-pill">DSU disconnected</span></header>
+    <div class="tabs">
+      <button class="tab on" data-pane="p-keys">Controls</button>
+      <button class="tab" data-pane="p-dsu"><img onerror="this.remove()" src="assets/dsu.png" alt="">DSU Remote</button>
+      <button class="tab" data-pane="p-video">Display &amp; graphics</button>
+    </div>
+    <div class="pane" id="p-keys">
+      <div class="row" style="margin-bottom:10px"><label><b>Controller</b> <select id="ctl-mode"><option value="wii">Wii Remote (sideways)</option></select></label></div>
+      <div class="help">Click a box and press the new key (or controller button); it is saved in this browser.
+        <b>Mouse:</b> click the game to capture the mouse (Esc releases it); moving the mouse moves the pointer, left click = A, right click = B.
+        <b>Xbox/PlayStation controller:</b> left stick or D-pad = move, A/Cross = jump (2), X/Square = run (1), RB/R1 = shake.</div>
+      <div class="muted" id="gp-status" style="margin-top:8px"></div>
+      <div class="hint"></div>
+      <table><thead><tr><th>Action</th><th>Key 1</th><th>Key 2</th><th>Controller 1</th><th>Controller 2</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="pane" id="p-dsu" hidden>
+      <div class="dsuhead"><img onerror="this.remove()" src="assets/dsu.png" alt=""><div><h3>DSU Remote: your phone as a Wii Remote</h3>
+        <div class="muted">DSU Remote requires the local Python launcher (serve.py); GitHub Pages cannot connect to the phone's UDP service directly. On your local network, type the phone IP and port 26760.</div></div></div>
+      <div class="row"><input id="dsu-host" placeholder="Phone IP, e.g. 192.168.1.50" style="flex:1;min-width:220px"><input id="dsu-port" type="number" min="1" max="65535" style="width:90px"><button class="wbtn blue" id="dsu-connect">Connect</button></div>
+      <div class="hint" id="dsu-status"></div>
+      <div class="row"><label>Slot 1: <select id="dsu-role0"></select></label><label>Slot 2: <select id="dsu-role1"></select></label></div>
+      <div class="row"><label>Sensitivity <input id="dsu-sens" type="range" min="0.3" max="3" step="0.1"></label><label><input id="dsu-invx" type="checkbox"> invert X</label><label><input id="dsu-invy" type="checkbox"> invert Y</label></div>
+      <div class="grid2" style="margin-top:14px">
+        <div class="help"><b>Wii Remote</b><br>Cross = A · Square = B · Triangle = 1 · Circle = 2<br>Turning the phone moves the pointer, shaking it shakes the Wii Remote, touching the screen centers the pointer.</div>
+        <div class="help"><b>Nunchuk</b> (a second phone)<br>Shaking it shakes the Nunchuk · stick = Nunchuk stick<br>Cross/ZL/ZR = Z · other buttons = C</div>
+        <div class="help"><b>Classic controller</b> ("Classic" layout, one phone)<br>Left stick = Nunchuk · right stick = pointer<br>a = A · b/ZR = B · ZL = Z · L = C · R = shake Nunchuk</div>
+        <div class="help">Keyboard, mouse and controller keep working at the same time. With a single phone in Wii Remote mode, use the keyboard or a controller for the Nunchuk (WASD, R = shake).</div>
+      </div>
+    </div>
+    <div class="pane" id="p-video" hidden>
+      <h3>Display</h3>
+      <div class="opt"><div class="t"><b>Full screen</b><span>Also with the button that appears at the top right when you move the mouse.</span></div><button class="wbtn" id="opt-full">Turn on</button></div>
+      <div class="opt"><div class="t"><b>Show FPS</b><span>Small counter at the top left (frames per second, and whether shaders are being compiled).</span></div><input type="checkbox" id="opt-fps"></div>
+      <div class="opt"><div class="t"><b>Show info bar</b><span>The bar at the bottom with the status and the log (in case something goes wrong).</span></div><input type="checkbox" id="opt-info"></div>
+      <div class="opt"><div class="t"><b>Internal resolution</b><span>2x looks sharper; 1x is much lighter on the graphics card (useful on laptops). Applied when you press Play.</span></div>
+        <select id="opt-scale"><option value="1">1x (640×528)</option><option value="2">2x (1280×1056)</option><option value="3">3x (1920×1584)</option></select></div>
+      <h3 style="margin-top:16px">Shaders</h3>
+      <div class="opt"><div class="t"><b>Shader mode</b><span><b>Precompile everything</b>: all known shaders are prepared on the loading screen; a new one is drawn with the generic shader while it compiles (like Dolphin's "hybrid" mode).
+        <b>Generic shader only</b>: never compiles during the game (no shader stutter) but is heavier on the graphics card.</span></div>
+        <select id="opt-shmode"><option value="hybrid">Precompile everything</option><option value="uber">Generic shader only</option></select></div>
+      <div class="opt"><div class="t"><b>Shaders seen in your games</b><span id="opt-shcount">They are saved automatically and precompiled next time. You can export them to have them added to the port.</span></div><button class="wbtn" id="opt-export">Export</button></div>
+    </div>
+    <footer><button class="wbtn" id="ctl-reset">Reset controls</button><button class="wbtn blue" id="ctl-close">Close</button></footer>
+  </div>
+</div>
+
+<div id="credits" class="overlay" hidden>
+  <div class="card">
+    <h1>New Super Mario Bros. Wii</h1>
+    <div class="by">ported by <b>teaser.lua</b></div>
+    <div class="small">New Super Mario Bros. Wii © Nintendo. This port reads the data from your own copy of the game. Not affiliated with Nintendo.</div>
+    <button class="wbtn blue" id="credits-close">Close</button>
+  </div>
+</div>
+
+<script src="coi.js"></script>
+<script src="wasm-loader.js"></script>
+<script src="gx-renderer.js"></script>
+<script src="input.js"></script>
+<script src="ui.js"></script>
+<script src="rgh-host.js"></script>
+<script>if (/^\/(rabbids|mkw|nsmbw)\//.test(location.pathname)) document.getElementById('hud-wiimenu').hidden = false;</script>
+</body>
+</html>

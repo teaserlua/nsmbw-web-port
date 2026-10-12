@@ -1,0 +1,18 @@
+# Wii disc contents, generated translations and saves stay out of Git.
+game/
+partition/
+web/game/
+web/gen/
+web/gen_rel/
+web/rgh.wasm
+web/game-config.json
+*.log
+nsmbw-log*.txt
+nsmbw-save*.bin
+__pycache__/
+*.pyc
+node_modules/
+.wrangler/
+test-chrome-profile/
+tests/.smoke-*.png
+

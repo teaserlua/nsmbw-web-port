@@ -1,0 +1,42 @@
+name: Publish New Super Mario Bros Wii web port
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: nsmbw-pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify browser build
+        run: |
+          test -s web/index.html
+          test -s web/rgh.wasm.gz
+          test -s web/rgh-worker.js
+          test -s web/coi-sw.js
+          test -s web/shaders.bin
+          for a in fondo.jpg barra.png btn-play.png btn-settings.png btn-credits.png dsu.png; do test -s "web/assets/$a"; done
+          node --check web/rgh-host.js
+          node --check web/rgh-worker.js
+          node --check web/coi.js
+          node --check web/coi-sw.js
+          node --check web/wasm-loader.js
+          node tests/browser-files.cjs
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: web
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,33 @@
+﻿New Super Mario Bros. Wii - port web (solo el juego)
+====================================================
+
+Cómo abrirlo
+1. Cierra WiiPorted u otro port si está abierto (usan el mismo puerto 8080).
+2. Doble clic en iniciar-nsmbw.bat. Busca tu copia extraída del juego (la carpeta con
+   sys\boot.bin de New Super Mario Bros. Wii USA, SMNE01) junto a esta carpeta y en las de arriba.
+   Si no la encuentra:
+     iniciar-nsmbw.bat -Game "C:\ruta\partition"
+3. Se abre http://localhost:8080/ en Chrome o Edge. Sale la pantalla de carga con la imagen del
+   juego y la barra; al terminar, el juego arranca solo.
+   Dentro del juego, mueve el ratón: arriba a la derecha salen Full screen y Settings.
+
+Controles (mando Wii de lado)
+- Flechas o WASD = mover, Espacio = saltar (botón 2), Shift = correr / bola de fuego (botón 1),
+  E = agitar (giro / agarrar), Enter = pausa (+). Se cambian en Settings > Controls.
+- Un mando Xbox/PlayStation también funciona.
+
+DSU Remote (tu celular como mando Wii)
+- Settings > DSU Remote: escribe la IP del celular (la que muestra la app, p. ej. 192.168.1.50)
+  y el puerto (26760 normalmente), y pulsa Connect. PC y celular deben estar en la misma red Wi-Fi.
+- Solo acepta IPs de tu red local. Funciona con Python o sin él (el .ps1 trae su propio puente).
+
+Notas
+- Las partidas se guardan en el navegador. Como usa el puerto 8080 igual que WiiPorted, es la
+  misma partida que en el canal de WiiPorted. Copia de seguridad: nsmbw-save-backup.bin en esta
+  carpeta. Registro de errores: nsmbw-log.txt.
+- La carpeta web\assets trae las imágenes de la pantalla de carga (fondo.jpg, barra.png, botones,
+  dsu.png). Puedes cambiarlas por otras con el mismo nombre.
+- El juego NO viene en este zip: se lee de tu propia copia. Nada se sube a Internet.
+
+Créditos
+- Port: teaser.lua. New Super Mario Bros. Wii © Nintendo; proyecto no afiliado.
