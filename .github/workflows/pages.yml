@@ -32,6 +32,7 @@ jobs:
           node --check web/coi-sw.js
           node --check web/wasm-loader.js
           node tests/browser-files.cjs
+          node --test tests/r2-packed.test.mjs
       - uses: actions/configure-pages@v5
         with:
           enablement: true

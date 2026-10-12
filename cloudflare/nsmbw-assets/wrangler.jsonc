@@ -1,0 +1,15 @@
+{
+  "name": "nsmbw-game-assets",
+  "main": "src/index.mjs",
+  "compatibility_date": "2026-10-12",
+  "workers_dev": true,
+  "vars": {
+    "PUBLIC_GAME_DATA": "false"
+  },
+  "r2_buckets": [
+    {
+      "binding": "GAME_DATA",
+      "bucket_name": "nsmbw-web-port"
+    }
+  ]
+}

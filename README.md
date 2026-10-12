@@ -2,6 +2,8 @@
 
 **Play:** https://teaserlua.github.io/nsmbw-web-port/
 
+**Cloudflare private hosting setup:** [docs/CLOUDFLARE-R2.md](docs/CLOUDFLARE-R2.md)
+
 This website contains the user's existing browser port (WebAssembly, WebGL2,
 sound and controller UI). It can read an extracted game partition from the
 visitor's computer without uploading it. The extracted **Nintendo game disc**

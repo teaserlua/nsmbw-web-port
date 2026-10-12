@@ -1,0 +1,13 @@
+{
+  "rules": [
+    {
+      "allowed": {
+        "origins": ["https://teaserlua.github.io", "http://127.0.0.1:8992", "http://localhost:8992"],
+        "methods": ["GET", "HEAD"],
+        "headers": ["Range"]
+      },
+      "exposeHeaders": ["Content-Length", "Content-Range", "Accept-Ranges"],
+      "maxAgeSeconds": 7200
+    }
+  ]
+}

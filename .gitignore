@@ -15,4 +15,4 @@ node_modules/
 .wrangler/
 test-chrome-profile/
 tests/.smoke-*.png
-
+generated/
