@@ -5,7 +5,6 @@ web/game/
 web/gen/
 web/gen_rel/
 web/rgh.wasm
-web/game-config.json
 *.log
 nsmbw-log*.txt
 nsmbw-save*.bin

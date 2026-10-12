@@ -7,10 +7,10 @@ private. The Worker lives at:
 
 `https://nsmbw-game-assets.jmhq20120212.workers.dev/`
 
-The Worker is configured with `PUBLIC_GAME_DATA: "false"`. This protects all
-`/game/` URLs, returning HTTP 403 while the site uses its local folder picker.
-Its `/health` route and synthetic `/fixtures/` routes are available for network
-and HTTP range tests; these contain no Nintendo assets.
+The Worker is configured with `PUBLIC_GAME_DATA: "true"` following the owner's
+confirmation of distribution authorization. Requests for `/game/` URLs now
+return virtual files from the packed data. Its `/health` route and synthetic
+`/fixtures/` routes remain available for network and HTTP range tests.
 
 **Private upload verified:** all six pack objects and `manifest.json` were
 uploaded to `nsmbw-web-port` on October 12, 2026. All seven were downloaded
@@ -58,30 +58,23 @@ npm exec --yes --package=wrangler -- wrangler r2 bucket cors set nsmbw-web-port 
 npm exec --yes --package=wrangler -- wrangler deploy --config cloudflare/nsmbw-assets/wrangler.jsonc
 ```
 
-## Release only with distribution authorization
+## Published game delivery
 
-The original game files are Nintendo's copyrighted content. Confirm that
-there is permission to distribute the entire extracted game, including code,
-music and textures, **before** changing the Worker setting. A personal copy
-of the disc does not itself confer redistribution rights.
+The owner confirmed authorization to distribute the extracted game files. To
+verify the public deployment:
 
-Once permission is established and private object integrity verified:
-
-1. In `cloudflare/nsmbw-assets/wrangler.jsonc`, change `PUBLIC_GAME_DATA` to
-   `"true"`, then deploy with Wrangler.
-2. Confirm `HEAD /game/sys/boot.bin` returns `200` and an exposed
+1. Confirm `HEAD /game/sys/boot.bin` returns `200` and an exposed
    `Content-Length`, and `GET` with `Range: bytes=0-31` returns `206` and a
    matching `Content-Range`, from the Pages origin.
-3. Add `web/game-config.json` (normally Git-ignored):
+2. Confirm the published `web/game-config.json` contains:
 
    ```json
    { "assetBase": "https://nsmbw-game-assets.jmhq20120212.workers.dev/" }
    ```
 
-4. Remove the `web/game-config.json` ignore entry and commit the non-secret
-   configuration so GitHub Pages can automatically load the hosted game.
-5. Test a complete boot and controls from the published Pages URL.
+3. Test a complete boot and controls from the published Pages URL with no local
+   game folder. The optional folder picker continues to support a local copy.
 
-Do not enable the Worker or commit the automatic remote configuration
-before release authorization. With no `game-config.json`, the published
-site continues to support selecting extracted local game files.
+To make the files private again, set `PUBLIC_GAME_DATA` to `"false"` in
+`cloudflare/nsmbw-assets/wrangler.jsonc` and redeploy with Wrangler; also
+remove `web/game-config.json` from the published site.

@@ -4,7 +4,7 @@
   "compatibility_date": "2026-10-12",
   "workers_dev": true,
   "vars": {
-    "PUBLIC_GAME_DATA": "false"
+    "PUBLIC_GAME_DATA": "true"
   },
   "r2_buckets": [
     {

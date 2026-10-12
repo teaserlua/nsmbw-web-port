@@ -72,6 +72,7 @@ const assetBasePromise = fetch('game-config.json',{cache:'no-store'})
     if (!url.pathname.endsWith('/')) url.pathname+='/';
     return url.href;
   }).catch(()=>null);
+const useLocalFiles=params.has('local');
 
 let modulePromise=null;
 function loadModule() {
@@ -167,9 +168,9 @@ function prepareShaders(r, all, onProgress) {
 let started = false;
 async function play() {
   if (started) return;
-  const remoteBase = await assetBasePromise;
+  const remoteBase = useLocalFiles ? null : await assetBasePromise;
   const title = document.getElementById('title');
-  if (!localGameFiles && !remoteBase && !localLauncher) {
+  if (!localGameFiles && (useLocalFiles || (!remoteBase && !localLauncher))) {
     title.classList.add('needs-game');
     return;
   }
@@ -210,12 +211,25 @@ async function play() {
     ]);
   }
   clearTimeout(skipT);
-  P(1, 'Ready!', '');
-  await new Promise((res) => setTimeout(res, 350));
+  if(remoteBase && !localGameFiles && !NORENDER) {
+    P(1, 'Starting game…', 'Reading game files from Cloudflare R2');
+    runGame(module,nand,remoteBase);
+    await new Promise(resolve=>{
+      const startAt=performance.now();
+      const timer=setInterval(()=>{
+        if ((window.__renderer?.stats?.xfbCopies||0)>0 ||
+            /^(Stopped|Error)/.test(statusEl.textContent) ||
+            performance.now()-startAt>90000){clearInterval(timer);resolve();}
+      },100);
+    });
+  } else {
+    P(1, 'Ready!', '');
+    await new Promise((res) => setTimeout(res, 350));
+    runGame(module,nand,remoteBase);
+  }
   title.classList.add('gone');
   setTimeout(() => { title.hidden = true; }, 800);
   document.body.classList.add('playing');
-  runGame(module, nand, remoteBase);
 }
 
 function runGame(module, nand, remoteBase) {

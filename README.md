@@ -2,21 +2,26 @@
 
 **Play:** https://teaserlua.github.io/nsmbw-web-port/
 
-**Cloudflare private hosting setup:** [docs/CLOUDFLARE-R2.md](docs/CLOUDFLARE-R2.md)
+**Cloudflare R2 game data hosting:** [docs/CLOUDFLARE-R2.md](docs/CLOUDFLARE-R2.md)
 
 This website contains the user's existing browser port (WebAssembly, WebGL2,
-sound and controller UI). It can read an extracted game partition from the
-visitor's computer without uploading it. The extracted **Nintendo game disc**
-files are not distributed in this repository or on the website.
+sound and controller UI). The game data is hosted on Cloudflare R2 and served
+as individual virtual files with byte-range requests by a Cloudflare Worker.
+The original extracted files and R2 packs are not committed to this Git repo.
 
 ### How to play
 
-Open the Play link in a desktop version of **Chrome or Edge**. Click **Choose
-game folder**, then select the extracted partition folder containing both
-`sys/boot.bin`, `sys/fst.bin`, `sys/main.dol` and `files/` from your game copy.
-The page reads small chunks locally through `FileReaderSync` in game workers.
-The browser may reload itself once to activate the isolation headers required
-for WebAssembly threads. The game starts after selecting the folder.
+Open the Play link in a desktop version of **Chrome or Edge**. The game starts
+automatically and reads its disc files from Cloudflare R2. The browser may
+reload itself once to activate the isolation headers required for WebAssembly
+threads. On first launch, downloading and preparing the game may take a little
+time depending on network speed.
+
+If you prefer your own extracted game partition, open
+[local folder mode](https://teaserlua.github.io/nsmbw-web-port/?local=1), then
+select the folder containing `sys/boot.bin`, `sys/fst.bin`, `sys/main.dol` and
+`files/`. Local files are read directly using `FileReaderSync` and never
+uploaded.
 
 ### Controls
 
@@ -28,15 +33,14 @@ supported. See Settings for binding adjustments. DSU Remote needs the local
 ### Development and hosting
 
 The site is deployed from `web/` via `.github/workflows/pages.yml`.
-The optional untracked `web/game-config.json` can specify an external asset
-server if the game data is licensed for distribution. The server must allow
-cross-origin `HEAD`, `GET Range` (HTTP 206), and expose `Content-Length` and
-`Content-Range` to `https://teaserlua.github.io`.
+The published `web/game-config.json` selects the Cloudflare Worker. The
+remote server supports cross-origin `HEAD`, `GET Range` (HTTP 206), and exposes
+`Content-Length` and `Content-Range` to `https://teaserlua.github.io`.
 
-Example configuration (not included in published site):
+Current published configuration:
 
 ```json
-{ "assetBase": "https://YOUR-AUTHORIZED-ASSET-SERVER/" }
+{ "assetBase": "https://nsmbw-game-assets.jmhq20120212.workers.dev/" }
 ```
 
 For local use, run `py serve.py --game "C:\path\to\partition" --port 8081`
