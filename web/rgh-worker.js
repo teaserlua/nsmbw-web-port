@@ -13,7 +13,9 @@ function str(p, n) { return td.decode(u8().slice(p, p + n)); }
 // ---------------------------------------------------------------- game files (HTTP Range, synchronous)
 const sizeCache = new Map();
 const blockCache = new Map();      // url|block -> Uint8Array
-const BLOCK = 262144, MAXBLOCKS = 96;      // 256 KiB per request: fewer round trips while the game loads
+// 256 KiB per request: fewer round trips while the game loads. The cache holds the whole ~336 MiB partition,
+// so a block is fetched once: re-reading an evicted block blocks the game thread and shows up as a hitch.
+const BLOCK = 262144, MAXBLOCKS = 1536;
 let localFiles = null, localReader = null;
 function fileUrl(path) { return cfg.base + path.split('/').map(encodeURIComponent).join('/'); }
 function fileSize(path) {
